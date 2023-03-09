@@ -27,7 +27,7 @@ env:
 jobs:
 
   Matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -39,7 +39,7 @@ jobs:
 
   # Build runtime image in Azure Container Registry, tagged with the unique run_number.
   Build-Connector:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
@@ -70,7 +70,7 @@ jobs:
 
   # Build runtime image in Azure Container Registry, tagged with the unique run_number.
   Build-Registration-Service:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
@@ -100,7 +100,7 @@ jobs:
 
   # Build data dashboard webapp
   Build-Dashboard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
@@ -128,7 +128,7 @@ jobs:
   Deploy-Dataspace:
     needs:
       - Build-Registration-Service
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       app_insights_connection_string: ${{ steps.runterraform.outputs.app_insights_connection_string }}
       registration_service_url: ${{ steps.runterraform.outputs.registration_service_url }}
@@ -243,7 +243,7 @@ jobs:
       - Build-Connector
       - Build-Dashboard
       - Matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       company1_edc_host: ${{ steps.runterraform.outputs.company1_edc_host }}
       company2_edc_host: ${{ steps.runterraform.outputs.company2_edc_host }}
@@ -407,7 +407,7 @@ jobs:
     needs:
       - Deploy-Participants
       - Deploy-Dataspace
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       # Checkout MVD code
       - uses: actions/checkout@v2
