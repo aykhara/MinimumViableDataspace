@@ -1,25 +1,29 @@
 services:
 
   # EDC Connector to simulate a dataspace participant acting as a data provider which is located in EU.
-  provider:
-    container_name: provider
+  company1:
+    container_name: company1
     build:
-      context: ../launcher
+      context: ../launchers/connector
       args:
         JVM_ARGS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     environment:
-      IDS_WEBHOOK_ADDRESS: http://provider:8282
+      IDS_WEBHOOK_ADDRESS: http://company1:8282
       EDC_BLOBSTORE_ENDPOINT_TEMPLATE: "http://azurite:10000/%s"
-      EDC_CONNECTOR_NAME: provider
-      EDC_IDENTITY_DID_URL: did:web:did-server:provider
-      EDC_VAULT: /resources/vault/provider/provider-vault.properties
-      EDC_KEYSTORE: /resources/vault/provider/provider-keystore.jks
+      EDC_CONNECTOR_NAME: company1
+      EDC_IDENTITY_DID_URL: did:web:did-server:company1
+      EDC_VAULT: /resources/vault/company1/company1-vault.properties
+      EDC_KEYSTORE: /resources/vault/company1/company1-keystore.jks
+      EDC_SELF_DESCRIPTION_DOCUMENT_PATH: /resources/self-description/company1/sdd.json
       EDC_KEYSTORE_PASSWORD: test123
       EDC_API_AUTH_KEY: ApiKeyDefaultValue
       EDC_IAM_DID_WEB_USE_HTTPS: "false"
       EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: 5
       EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: 5
-      REGISTRATION_SERVICE_API_URL: http://registration-service:8181/api
+      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: 5
+      REGISTRATION_SERVICE_API_URL: http://registration-service:8184/authority
+      EDC_WEB_REST_CORS_ENABLED: "true"
+      EDC_WEB_REST_CORS_HEADERS: "origin,content-type,accept,authorization,x-api-key"
     depends_on:
       - did-server
       - azurite
@@ -28,29 +32,34 @@ services:
       - "9191:9191"
       - "8181:8181"
       - "5005:5005"
+      - "7171:7171"
     volumes:
       - ./resources:/resources
 
   # EDC Connector to simulate a dataspace participant acting as a data consumer which is located in EU.
-  consumer-eu:
-    container_name: consumer-eu
+  company2:
+    container_name: company2
     build:
-      context: ../launcher
+      context: ../launchers/connector
       args:
         JVM_ARGS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
     environment:
-      IDS_WEBHOOK_ADDRESS: http://consumer-eu:8282
+      IDS_WEBHOOK_ADDRESS: http://company2:8282
       EDC_BLOBSTORE_ENDPOINT_TEMPLATE: "http://azurite:10000/%s"
-      EDC_CONNECTOR_NAME: consumer-eu
-      EDC_IDENTITY_DID_URL: did:web:did-server:consumer-eu
-      EDC_VAULT: /resources/vault/consumer-eu/consumer-eu-vault.properties
-      EDC_KEYSTORE: /resources/vault/consumer-eu/consumer-eu-keystore.jks
+      EDC_CONNECTOR_NAME: company2
+      EDC_IDENTITY_DID_URL: did:web:did-server:company2
+      EDC_VAULT: /resources/vault/company2/company2-vault.properties
+      EDC_KEYSTORE: /resources/vault/company2/company2-keystore.jks
+      EDC_SELF_DESCRIPTION_DOCUMENT_PATH: /resources/self-description/company2/sdd.json
       EDC_KEYSTORE_PASSWORD: test123
       EDC_API_AUTH_KEY: ApiKeyDefaultValue
       EDC_IAM_DID_WEB_USE_HTTPS: "false"
       EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: 5
       EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: 5
-      REGISTRATION_SERVICE_API_URL: http://registration-service:8181/api
+      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: 5
+      REGISTRATION_SERVICE_API_URL: http://registration-service:8184/authority
+      EDC_WEB_REST_CORS_ENABLED: "true"
+      EDC_WEB_REST_CORS_HEADERS: "origin,content-type,accept,authorization,x-api-key"
     depends_on:
       - did-server
       - azurite
@@ -59,29 +68,34 @@ services:
       - "9192:9191"
       - "8182:8181"
       - "5006:5006"
+      - "7172:7171"
     volumes:
       - ./resources:/resources
 
   # EDC Connector to simulate a dataspace participant acting as a consumer which is located in US.
-  consumer-us:
-    container_name: consumer-us
+  company3:
+    container_name: company3
     build:
-      context: ../launcher
+      context: ../launchers/connector
       args:
         JVM_ARGS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007"
     environment:
-      IDS_WEBHOOK_ADDRESS: http://consumer-us:8282
+      IDS_WEBHOOK_ADDRESS: http://company3:8282
       EDC_BLOBSTORE_ENDPOINT_TEMPLATE: "http://azurite:10000/%s"
-      EDC_CONNECTOR_NAME: consumer-us
-      EDC_IDENTITY_DID_URL: did:web:did-server:consumer-us
-      EDC_VAULT: /resources/vault/consumer-us/consumer-us-vault.properties
-      EDC_KEYSTORE: /resources/vault/consumer-us/consumer-us-keystore.jks
+      EDC_CONNECTOR_NAME: company3
+      EDC_IDENTITY_DID_URL: did:web:did-server:company3
+      EDC_VAULT: /resources/vault/company3/company3-vault.properties
+      EDC_KEYSTORE: /resources/vault/company3/company3-keystore.jks
+      EDC_SELF_DESCRIPTION_DOCUMENT_PATH: /resources/self-description/company3/sdd.json
       EDC_KEYSTORE_PASSWORD: test123
       EDC_API_AUTH_KEY: ApiKeyDefaultValue
       EDC_IAM_DID_WEB_USE_HTTPS: "false"
       EDC_CATALOG_CACHE_EXECUTION_DELAY_SECONDS: 5
       EDC_CATALOG_CACHE_EXECUTION_PERIOD_SECONDS: 5
-      REGISTRATION_SERVICE_API_URL: http://registration-service:8181/api
+      EDC_CATALOG_CACHE_PARTITION_NUM_CRAWLERS: 5
+      REGISTRATION_SERVICE_API_URL: http://registration-service:8184/authority
+      EDC_WEB_REST_CORS_ENABLED: "true"
+      EDC_WEB_REST_CORS_HEADERS: "origin,content-type,accept,authorization,x-api-key"
     depends_on:
       - did-server
       - azurite
@@ -90,28 +104,30 @@ services:
       - "9193:9191"
       - "8183:8181"
       - "5007:5007"
+      - "7173:7171"
     volumes:
       - ./resources:/resources
 
   # Usages postman collections for initial data seeding to connectors.
   newman:
     container_name: newman
-    image: postman/newman
-    entrypoint: /bin/sh
+    image: postman/newman:ubuntu
+    entrypoint: /bin/bash
     command: deployment/seed-data.sh
     volumes:
       - ../deployment/:/deployment
     working_dir: /
     environment:
       API_KEY: ApiKeyDefaultValue
-      EDC_HOST: provider
-      ASSETS_STORAGE_ACCOUNT: providerassets
+      EDC_HOST: company1:company2:company3
+      ASSETS_STORAGE_ACCOUNT: company1assets:company2assets:company3assets
+      PARTICIPANT_ID: company1:company2:company3
     depends_on:
-      consumer-eu:
+      company1:
         condition: service_healthy
-      consumer-us:
+      company2:
         condition: service_healthy
-      provider:
+      company3:
         condition: service_healthy
 
   # A nginx based HTTP server to serve dataspace participants DIDs.
@@ -130,18 +146,92 @@ services:
     ports:
       - 10000:10000
     environment:
-      AZURITE_ACCOUNTS: providerassets:key1;consumereuassets:key2;consumerusassets:key3
+      AZURITE_ACCOUNTS: company1assets:key1;company2assets:key2;company3assets:key3
 
   # Dataspace registration service authority.
   registration-service:
     container_name: registration-service
     build:
-#e.g. /home/user/RegistrationService/launcher
-      context: ${REGISTRATION_SERVICE_LAUNCHER_PATH:?"Registration Service launcher path env var required"}
+      #e.g. /home/user/RegistrationService/launcher
+      context: ../launchers/registrationservice
       args:
         JVM_ARGS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008"
     environment:
-      EDC_API_AUTH_KEY: ApiKeyDefaultValue
+      JWT_AUDIENCE: http://registration-service:8184/authority
+      WEB_HTTP_AUTHORITY_PORT: 8184
+      WEB_HTTP_AUTHORITY_PATH: /authority
+      EDC_IAM_DID_WEB_USE_HTTPS: "false"
+      EDC_CONNECTOR_NAME: registration-service
+      EDC_IDENTITY_DID_URL: did:web:did-server:registration-service
+      EDC_SELF_DESCRIPTION_DOCUMENT_PATH: /resources/self-description/registration-service/sdd.json
+      EDC_VAULT: /resources/vault/registration-service/registration-service-vault.properties
+      EDC_KEYSTORE: /resources/vault/registration-service/registration-service-keystore.jks
+      EDC_KEYSTORE_PASSWORD: test123
+      EDC_ERROR_RESPONSE_VERBOSE: "true"
     ports:
-      - "8184:8181"
+      - "8184:8184"
+      - "8185:8181"
       - "5008:5008"
+      - "7174:7171"
+    volumes:
+      - ./resources:/resources
+
+  # cli-tools to help setup MVD environment e.g. registering participant to authority.
+  cli-tools:
+    container_name: cli-tools
+    build:
+      context: ./resources/cli-tools
+    volumes:
+      - ./resources:/resources
+      - ../resources:/common-resources
+    depends_on:
+      company1:
+        condition: service_healthy
+      company2:
+        condition: service_healthy
+      company3:
+        condition: service_healthy
+      registration-service:
+        condition: service_healthy
+
+  # Data Dashboard (MVD UI) for participant company1
+  company1-datadashboard:
+    container_name: company1-datadashboard
+    build:
+      context: ${MVD_UI_PATH}
+    volumes:
+      - ./resources/appconfig/company1:/usr/share/nginx/html/assets/config
+    depends_on:
+      company1:
+        condition: service_healthy
+    ports:
+      - "7080:80"
+    profiles: ["ui"]
+
+      # Data Dashboard (MVD UI) for participant company2
+  company2-datadashboard:
+    container_name: company2-datadashboard
+    build:
+      context: ${MVD_UI_PATH}
+    volumes:
+      - ./resources/appconfig/company2:/usr/share/nginx/html/assets/config
+    depends_on:
+      company2:
+        condition: service_healthy
+    ports:
+      - "7081:80"
+    profiles: ["ui"]
+
+  # Data Dashboard (MVD UI) for participant company3
+  company3-datadashboard:
+    container_name: company3-datadashboard
+    build:
+      context: ${MVD_UI_PATH}
+    volumes:
+      - ./resources/appconfig/company3:/usr/share/nginx/html/assets/config
+    depends_on:
+      company3:
+        condition: service_healthy
+    ports:
+      - "7082:80"
+    profiles: ["ui"]

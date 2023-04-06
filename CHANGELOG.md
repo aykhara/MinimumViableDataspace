@@ -13,6 +13,9 @@ in the detailed section referring to by linking pull requests or issues.
 
 ### Detailed Changes
 - Initial Identity Hub integration (#21)
+- Add JDK Logger
+- Identity Hub integration with CredentialsVerifier (#21)
+- Registration Service Observability (#247)
 
 #### Added
 

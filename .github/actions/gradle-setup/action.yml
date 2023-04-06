@@ -3,82 +3,17 @@ description: "Setup Gradle"
 runs:
   using: "composite"
   steps:
-    # Checkout EDC code into DataSpaceConnector directory.
-    - name: Checkout EDC
-      uses: actions/checkout@v2
-      with:
-        repository: eclipse-dataspaceconnector/DataSpaceConnector
-        path: DataSpaceConnector
-        ref: 3ff940b720f44826df28e893fb31344eb6faacef
 
-    - name: Checkout Registration Service
-      uses: actions/checkout@v2
+    - name: Checkout EDC Data Dashboard
+      uses: actions/checkout@v3
       with:
-        repository: eclipse-dataspaceconnector/RegistrationService
-        path: RegistrationService
-        ref: 374c14bcca23ddb1dcd7476a27264510e54de7fa
-
-    - name: Checkout Identity Hub
-      uses: actions/checkout@v2
-      with:
-        repository: eclipse-dataspaceconnector/IdentityHub
-        path: IdentityHub
-        ref: bc13cf0cb8589b792eef733c7cf7b3422476add5
+        repository: eclipse-dataspaceconnector/DataDashboard
+        path: DataDashboard
+        ref: ab1b6fd0870fa5ec8c170915a2b44fae63d576bd
 
     # Install Java and cache MVD Gradle build.
-    - uses: actions/setup-java@v2
+    - uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: 'gradle'
-
-    # Cache EDC packages (installed into ~/.m2) in-between runs.
-    # If the latest EDC commit ID has not changed since the last run, this will restore
-    # its Maven packages from the cache.
-    - name: Cache EDC packages
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: ~/.m2
-        # .git/FETCH_HEAD contains latest commit ID
-        key: ${{ runner.os }}-m2-${{ hashFiles('DataSpaceConnector/.git/FETCH_HEAD') }}-${{ hashFiles('RegistrationService/.git/FETCH_HEAD') }}-${{ hashFiles('IdentityHub/.git/FETCH_HEAD') }}
-
-    # Install EDC packages into ~/.m2.
-    # This action only runs if the packages could not be restored from the cache.
-    - name: Build EDC packages
-      run: |
-        ./gradlew publishToMavenLocal -Pskip.signing
-      if: steps.cache.outputs.cache-hit != 'true' # only on cache miss
-      shell: bash
-      working-directory: DataSpaceConnector
-
-    - name: Delete local EDC repository
-      run: rm -r DataSpaceConnector
-      shell: bash
-
-    # Install Registration Service packages into ~/.m2.
-    # This action only runs if the packages could not be restored from the cache.
-    - name: Build Registration Service packages
-      run: |
-        ./gradlew publishToMavenLocal -Pskip.signing
-      if: steps.cache.outputs.cache-hit != 'true' # only on cache miss
-      shell: bash
-      working-directory: RegistrationService
-
-    # Keep RegistrationService sources as needed for build
-    - name: Move Registration Service packages out of build directory
-      run: mv RegistrationService ${{ runner.temp }}
-      shell: bash
-
-    # Install Identity Hub packages into ~/.m2.
-    # This action only runs if the packages could not be restored from the cache.
-    - name: Build Identity Hub packages
-      run: |
-        ./gradlew publishToMavenLocal -Pskip.signing
-      if: steps.cache.outputs.cache-hit != 'true' # only on cache miss
-      shell: bash
-      working-directory: IdentityHub
-
-    - name: Delete local Identity Hub repository
-      run: rm -r IdentityHub
-      shell: bash

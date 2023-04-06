@@ -1,12 +1,12 @@
 # Developer documentation
 
-## Environment setup
+## Cloud environment setup
 
-- [Continuous Deployment and Initializing an Azure environment for CD](continuous_deployment.md)
+Please follow the [instructions to set up continuous deployment and initializing an Azure environment](continuous-deployment/continuous_deployment.md).
 
 ## Local development setup
 
-Please follow the instructions in [this document](system-tests/README.md) to setup a local MVD environment for development purposes.
+Please follow the instructions in [this document](../../system-tests/README.md) to setup a local MVD environment for development purposes.
 
 ## Data Dashboard
 
