@@ -61,8 +61,8 @@ jobs:
       # Build MVD runtime JAR locally.
       # The result is a JAR file in MVD/launcher/build/libs.
       - name: 'Build runtime JAR'
-        run: ./gradlew launcher:shadowJar
-        working-directory: launcher
+        run: ./gradlew shadowJar
+        working-directory: .
 
       # Build Docker runtime image remotely on ACR & push it to the registry.
       - name: 'Build image'
