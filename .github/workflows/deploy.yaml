@@ -92,7 +92,7 @@ jobs:
       # The result is a JAR file in launcher/build/libs.
       - name: 'Build runtime JAR'
         run: ./gradlew shadowJar
-        working-directory: ${{ runner.temp }}/RegistrationService
+        working-directory: .
 
       # Build Docker runtime image remotely on ACR & push it to the registry.
       - name: 'Build image'
