@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("libs") {
-            from("org.eclipse.edc:edc-versions:0.0.1-20230301-SNAPSHOT")
+            from("org.eclipse.edc:edc-versions:0.0.1-milestone-8")
             library("apache.commons.lang3", "org.apache.commons", "commons-lang3").version("3.12.0")
             library("gatling-highcharts", "io.gatling.highcharts", "gatling-charts-highcharts").version("3.7.5")
         }
