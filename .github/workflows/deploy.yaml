@@ -31,7 +31,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: set-matrix
         run: |
           matrix=$(jq -c . participants.json)
@@ -44,7 +44,7 @@ jobs:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
       # Checkout MVD code
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: 'Az CLI login'
         uses: azure/login@v1
@@ -75,7 +75,7 @@ jobs:
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/gradle-setup
 
       - name: 'Az CLI login'
@@ -106,7 +106,7 @@ jobs:
       ACR_NAME: ${{ secrets.ACR_NAME }}
     steps:
       - name: Checkout DataDashboard
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: eclipse-dataspaceconnector/DataDashboard
           ref: 6ce10c61d1333e2857b4921d3f02ffb69b4064b7
@@ -139,7 +139,7 @@ jobs:
         working-directory: deployment/terraform/dataspace
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: 'Generate GAIA-X Authority key'
         uses: ./.github/actions/generate-key
@@ -273,7 +273,7 @@ jobs:
         working-directory: deployment/terraform/participant
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/gradle-setup
 
       - name: 'Generate Participant key'
@@ -411,7 +411,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       # Checkout MVD code
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/gradle-setup
 

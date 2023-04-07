@@ -26,7 +26,7 @@ dependencyResolutionManagement {
             library("gatling-highcharts", "io.gatling.highcharts", "gatling-charts-highcharts").version("3.7.5")
         }
         create("identityHub") {
-            version("identityHub", "0.0.1-20230301-SNAPSHOT")
+            version("identityHub", "0.0.1-milestone-8")
             library("spi-core", "org.eclipse.edc", "identity-hub-spi").versionRef("identityHub")
             library("core", "org.eclipse.edc", "identity-hub").versionRef("identityHub")
             library("core-client", "org.eclipse.edc", "identity-hub-client").versionRef("identityHub")
@@ -45,7 +45,7 @@ dependencyResolutionManagement {
 
         }
         create("registrationService") {
-            version("registrationService", "0.0.1-20230301-SNAPSHOT")
+            version("registrationService", "0.0.1-milestone-8")
             library("core", "org.eclipse.edc", "registration-service").versionRef("registrationService")
             library(
                 "core-credential-service",
@@ -57,14 +57,14 @@ dependencyResolutionManagement {
         }
 
         create("fcc") {
-            version("catalog", "0.0.1-20230301-SNAPSHOT")
+            version("catalog", "0.0.1-milestone-8")
             library("api", "org.eclipse.edc", "federated-catalog-api").versionRef("catalog")
             library("spi", "org.eclipse.edc", "federated-catalog-spi").versionRef("catalog")
             library("core", "org.eclipse.edc", "federated-catalog-core").versionRef("catalog")
         }
 
         create("edc") {
-            version("edc", "0.0.1-20230301-SNAPSHOT")
+            version("edc", "0.0.1-milestone-8")
             library("util", "org.eclipse.edc", "util").versionRef("edc")
             library("boot", "org.eclipse.edc", "boot").versionRef("edc")
             library("junit", "org.eclipse.edc", "junit").versionRef("edc")
