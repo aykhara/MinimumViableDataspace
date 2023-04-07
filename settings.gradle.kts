@@ -35,7 +35,7 @@ dependencyResolutionManagement {
             ).versionRef("identityHub")
 
             library("ext-api", "org.eclipse.edc", "identity-hub-api").versionRef("identityHub")
-            library("ext-selfdescription-api", "org.eclipse.edc", "self-description-api").versionRef("identityHub")
+            //library("ext-selfdescription-api", "org.eclipse.edc", "self-description-api").versionRef("identityHub")
             library(
                 "ext-verifier-jwt", "org.eclipse.edc", "identity-hub-verifier-jwt"
             ).versionRef("identityHub")
