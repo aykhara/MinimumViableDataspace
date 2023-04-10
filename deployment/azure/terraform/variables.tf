@@ -1,5 +1,4 @@
 variable "application_sp_object_id" {
-  default = "00000000-0000-0000-0000-000000000000"
   description = "object id of application's service principal object"
 }
 
@@ -9,12 +8,10 @@ variable "res_prefix" {
 }
 
 variable "application_sp_client_id" {
-  default = "00000000-0000-0000-0000-000000000000"
   description = "client id of application's service principal object"
 }
 
 variable "application_sp_client_secret" {
-  default = "00000000-0000-0000-0000-000000000000"
   description = "client secret of the application"
 }
 
