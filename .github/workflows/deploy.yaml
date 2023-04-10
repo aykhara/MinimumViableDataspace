@@ -136,7 +136,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: deployment/terraform/dataspace
+        working-directory: deployment/azure/terraform/modules/dataspace
 
     steps:
       - uses: actions/checkout@v3
