@@ -151,6 +151,9 @@ jobs:
         with:
           keyFileNamePrefix: authoritykey
 
+      - name: 'Get current folder'
+        run: pwd
+
       - name: 'Create tfvars file'
         run: |
           cat > terraform.tfvars <<EOF
