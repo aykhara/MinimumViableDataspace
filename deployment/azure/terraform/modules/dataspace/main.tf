@@ -1,6 +1,24 @@
-locals {
-  edc_resources_folder     = "/resources"
-  dataspace_authority_name = "authority"
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.1.0"
+    }
+  }
+
+  backend "azurerm" {}
+}
+
+provider "azurerm" {
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy = true
+    }
+    // When deleting App Insights, resources related to microsoft.alertsmanagement remain
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 data "azurerm_subscription" "current_subscription" {
@@ -9,25 +27,74 @@ data "azurerm_subscription" "current_subscription" {
 data "azurerm_client_config" "current_client" {
 }
 
+data "azurerm_container_registry" "registrationservice" {
+  name                = var.acr_name
+  resource_group_name = var.acr_resource_group
+}
+
 locals {
   registry_files_prefix = "${var.prefix}-"
 
-  connector_name = "registration-service"
+  connector_name = "connector-registration"
 
-  registration_service_dns_label   = "${var.prefix}-registration-mvd"
-  edc_default_port                 = 8181
-  registration_service_port        = 8184
-  registration_service_path_prefix = "/authority"
-  registration_service_host        = "registration-service"
-  registration_service_url         = "http://${local.registration_service_host}:${local.registration_service_port}${local.registration_service_path_prefix}"
+  registration_service_dns_label = "${var.prefix}-registration-mvd"
+  edc_default_port               = 8181
 
-  dataspace_did_uri = "did:web:${azurerm_storage_account.dataspace_did.primary_web_host}"
-  gaiax_did_uri     = "did:web:${azurerm_storage_account.gaiax_did.primary_web_host}"
+  dataspace_did_url = "did:web:${azurerm_storage_account.dataspace_did.primary_web_host}"
+  gaiax_did_url     = "did:web:${azurerm_storage_account.gaiax_did.primary_web_host}"
 }
 
 resource "azurerm_resource_group" "dataspace" {
   name     = var.resource_group
   location = var.location
+}
+
+resource "azurerm_application_insights" "dataspace" {
+  name                = "${var.prefix}-appinsights"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.dataspace.name
+  application_type    = "java"
+}
+
+resource "azurerm_container_group" "registration-service" {
+  name                = "${var.prefix}-registration-mvd"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.dataspace.name
+  ip_address_type     = "Public"
+  dns_name_label      = local.registration_service_dns_label
+  os_type             = "Linux"
+
+  image_registry_credential {
+    username = data.azurerm_container_registry.registrationservice.admin_username
+    password = data.azurerm_container_registry.registrationservice.admin_password
+    server   = data.azurerm_container_registry.registrationservice.login_server
+  }
+
+  container {
+    name   = "registration-service"
+    image  = "${data.azurerm_container_registry.registrationservice.login_server}/${var.registrationservice_runtime_image}"
+    cpu    = var.container_cpu
+    memory = var.container_memory
+
+    ports {
+      port     = local.edc_default_port
+      protocol = "TCP"
+    }
+
+    environment_variables = {
+      EDC_CONNECTOR_NAME = local.connector_name
+    }
+
+    liveness_probe {
+      http_get {
+        port = 8181
+        path = "/api/check/health"
+      }
+      initial_delay_seconds = 10
+      failure_threshold     = 6
+      timeout_seconds       = 3
+    }
+  }
 }
 
 resource "azurerm_key_vault" "registrationservice" {
@@ -57,24 +124,82 @@ resource "azurerm_role_assignment" "current-user-secretsofficer" {
   principal_id         = data.azurerm_client_config.current_client.object_id
 }
 
-# Role assignment so that the currently logged in user may add keys to the vault
-resource "azurerm_role_assignment" "current-user-cryptoofficer" {
-  scope                = azurerm_key_vault.registrationservice.id
-  role_definition_name = "Key Vault Crypto Officer"
-  principal_id         = data.azurerm_client_config.current_client.object_id
-}
-
-resource "azurerm_storage_account" "shared" {
-  name                     = "${var.prefix}${local.dataspace_authority_name}shared"
+# Internal Dataspace Authority resources (Dataspace DID)
+resource "azurerm_storage_account" "dataspace_did" {
+  name                     = "${var.prefix}dataspacedid"
   resource_group_name      = azurerm_resource_group.dataspace.name
-  location                 = azurerm_resource_group.dataspace.location
+  location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
   account_kind             = "StorageV2"
+  static_website {}
 }
 
-resource "azurerm_storage_share" "share" {
-  name                 = "share"
-  storage_account_name = azurerm_storage_account.shared.name
-  quota                = 1
+resource "azurerm_storage_blob" "dataspace_did" {
+  name                 = ".well-known/did.json" # `.well-known` path is defined by did:web specification
+  storage_account_name = azurerm_storage_account.dataspace_did.name
+  # Create did blob only if public_key_jwk_file is provided. Default public_key_jwk_file value is null.
+  count                  = var.public_key_jwk_file_authority == null ? 0 : 1
+  storage_container_name = "$web" # container used to serve static files (see static_website property on storage account)
+  type                   = "Block"
+  source_content = jsonencode({
+    id = local.dataspace_did_url
+    "@context" = [
+      "https://www.w3.org/ns/did/v1",
+      {
+        "@base" = local.dataspace_did_url
+      }
+    ],
+    "verificationMethod" = [
+      {
+        "id"           = "#identity-key-authority"
+        "controller"   = ""
+        "type"         = "JsonWebKey2020"
+        "publicKeyJwk" = jsondecode(file(var.public_key_jwk_file_authority))
+      }
+    ],
+    "authentication" : [
+      "#identity-key-authority"
+  ] })
+  content_type = "application/json"
+}
+
+# GAIA-X Authority resources
+resource "azurerm_storage_account" "gaiax_did" {
+  name                     = "${var.prefix}gaiaxdid"
+  resource_group_name      = azurerm_resource_group.dataspace.name
+  location                 = var.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  account_kind             = "StorageV2"
+  static_website {}
+}
+
+resource "azurerm_storage_blob" "gaiax_did" {
+  name                 = ".well-known/did.json" # `.well-known` path is defined by did:web specification
+  storage_account_name = azurerm_storage_account.gaiax_did.name
+  # Create did blob only if public_key_jwk_file is provided. Default public_key_jwk_file value is null.
+  count                  = var.public_key_jwk_file_gaiax == null ? 0 : 1
+  storage_container_name = "$web" # container used to serve static files (see static_website property on storage account)
+  type                   = "Block"
+  source_content = jsonencode({
+    id = local.gaiax_did_url
+    "@context" = [
+      "https://www.w3.org/ns/did/v1",
+      {
+        "@base" = local.gaiax_did_url
+      }
+    ],
+    "verificationMethod" = [
+      {
+        "id"           = "#identity-key-gaiax"
+        "controller"   = ""
+        "type"         = "JsonWebKey2020"
+        "publicKeyJwk" = jsondecode(file(var.public_key_jwk_file_gaiax))
+      }
+    ],
+    "authentication" : [
+      "#identity-key-gaiax"
+  ] })
+  content_type = "application/json"
 }
