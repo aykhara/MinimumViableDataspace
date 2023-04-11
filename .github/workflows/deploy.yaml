@@ -255,6 +255,7 @@ jobs:
         run: |
           ./create_azure_dataspace.sh
           az storage blob upload -c $TERRAFORM_STATE_CONTAINER --account-name $TERRAFORM_STATE_STORAGE_ACCOUNT -f terraform/terraform.tfvars -n terraform.tfvars
+        working-directory: .
 
       - name: 'Upgrade docker-compose (for --wait option)'
         run: |
