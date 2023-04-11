@@ -165,9 +165,7 @@ jobs:
           application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
           application_sp_client_id = "${{ secrets.APP_CLIENT_ID }}"
           application_sp_client_secret = "${{ secrets.APP_CLIENT_SECRET }}"
-          private_key_pem_file = ./generated/dataspace/authoritykey.pem
           EOF
-        working-directory: .
 
       - name: 'Az CLI login'
         uses: azure/login@v1
@@ -214,6 +212,7 @@ jobs:
           # Terraform variables not included in terraform.tfvars.
           TF_VAR_public_key_jwk_file_authority: "authoritykey.public.jwk"
           TF_VAR_public_key_jwk_file_gaiax: "gaiaxkey.public.jwk"
+          TF_VAR_private_key_pem_file: "authoritykey.pem"
 
       - name: 'Az CLI re-login (refresh role assignments)'
         uses: azure/login@v1
