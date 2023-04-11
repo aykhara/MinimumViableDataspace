@@ -6,12 +6,17 @@ output "key_vault" {
   value = azurerm_key_vault.registrationservice.name
 }
 
+output "app_insights_connection_string" {
+  value     = azurerm_application_insights.dataspace.connection_string
+  sensitive = true
+}
+
 output "registration_service_host" {
   value = local.registration_service_host
 }
 
-output "registration_service_url" {
-  value = local.registration_service_url
+output "registration_service_url" { // TODO: Fix later - local.registration_service_url
+  value = "http://${azurerm_container_group.registration-service.fqdn}:${local.edc_default_port}"
 }
 
 output "dataspace_did_host" {
