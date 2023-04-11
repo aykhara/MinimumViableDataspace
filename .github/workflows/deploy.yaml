@@ -160,6 +160,9 @@ jobs:
           resource_group = "rg-${{ env.RESOURCES_PREFIX }}"
           registrationservice_runtime_image = "mvd/registration-service:${{ env.RESOURCES_PREFIX }}"
           application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
+          application_sp_client_id = "${{ secrets.APP_CLIENT_ID }}"
+          application_sp_client_secret = "${{ secrets.APP_CLIENT_SECRET }}"
+          private_key_pem_file = "${path.module}/generated/dataspace/authoritykey.pem"
           EOF
 
       - name: 'Az CLI login'
@@ -270,7 +273,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: deployment/terraform/participant
+        working-directory: deployment/azure/terraform/modules/participant
 
     steps:
       - uses: actions/checkout@v3
@@ -280,7 +283,7 @@ jobs:
         uses: ./.github/actions/generate-key
         with:
           keyFileNamePrefix: key
-          directory: deployment/terraform/participant
+          directory: deployment/azure/terraform/modules/participant
 
       - name: 'Create tfvars file'
         run: |
