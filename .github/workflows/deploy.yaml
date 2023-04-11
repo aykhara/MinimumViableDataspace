@@ -434,9 +434,9 @@ jobs:
 #          REGISTRATION_SERVICE_API_URL: ${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api
 
   Verify:
-    needs:
-      - Deploy-Participants
-      - Deploy-Dataspace
+#    needs:
+#      - Deploy-Participants
+#      - Deploy-Dataspace
     runs-on: ubuntu-20.04
     steps:
       # Checkout MVD code
