@@ -162,7 +162,7 @@ jobs:
           application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
           application_sp_client_id = "${{ secrets.APP_CLIENT_ID }}"
           application_sp_client_secret = "${{ secrets.APP_CLIENT_SECRET }}"
-          private_key_pem_file = "../../generated/dataspace/authoritykey.pem"
+          private_key_pem_file = file("${path.module}/generated/dataspace/authoritykey.pem")
           EOF
 
       - name: 'Az CLI login'
