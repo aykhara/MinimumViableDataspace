@@ -126,324 +126,288 @@ jobs:
         run: az acr build --registry $ACR_NAME --image mvd/data-dashboard:${{ env.RESOURCES_PREFIX }} .
 
   # Deploy shared dataspace components.
-#  Deploy-Dataspace:
-#    needs:
-#      - Build-Registration-Service
-#    runs-on: ubuntu-20.04
-#    outputs:
-#      app_insights_connection_string: ${{ steps.runterraform.outputs.app_insights_connection_string }}
-#      registration_service_url: ${{ steps.runterraform.outputs.registration_service_url }}
-#
-#    defaults:
-#      run:
-#        working-directory: deployment/azure/terraform/modules/dataspace
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - name: 'Generate GAIA-X Authority key'
-#        uses: ./.github/actions/generate-key
-#        with:
-#          keyFileNamePrefix: gaiaxkey
-#
-#      - name: 'Generate Dataspace Authority key'
-#        uses: ./.github/actions/generate-key
-#        with:
-#          keyFileNamePrefix: authoritykey
-#
-#      - name: 'Create tfvars file'
-#        run: |
-#          cat > terraform.tfvars <<EOF
-#          acr_resource_group = "${{ secrets.COMMON_RESOURCE_GROUP }}"
-#          acr_name = "${{ secrets.ACR_NAME }}"
-#          prefix = "${{ env.RESOURCES_PREFIX }}"
-#          resource_group = "rg-${{ env.RESOURCES_PREFIX }}"
-#          registrationservice_runtime_image = "mvd/registration-service:${{ env.RESOURCES_PREFIX }}"
-#          application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
-#          EOF
-#
-#      - name: 'Az CLI login'
-#        uses: azure/login@v1
-#        with:
-#          client-id: ${{ secrets.ARM_CLIENT_ID }}
-#          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-#          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#
-#      - name: 'Upload tfvars file'
-#        run: az storage blob upload --account-name "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" -c "${{ secrets.TERRAFORM_STATE_CONTAINER }}" -f terraform.tfvars -n "${{ env.RESOURCES_PREFIX }}.tfvars" --auth-mode key
-#
-#      - name: 'Run terraform'
-#        id: runterraform
-#        run: |
-#          # Create backend.conf file to retrieve the remote terraform state during terraform init.
-#          echo '
-#            resource_group_name  = "${{ secrets.COMMON_RESOURCE_GROUP }}"
-#            storage_account_name = "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}"
-#            container_name       = "${{ secrets.TERRAFORM_STATE_CONTAINER }}"
-#            key                  = "${{ env.RESOURCES_PREFIX }}.tfstate"
-#          ' >> backend.conf
-#          terraform init -backend-config=backend.conf
-#          terraform apply -auto-approve
-#          connector_name=$(terraform output -raw connector_name)
-#          echo "::set-output name=connector_name::${connector_name}"
-#          key_vault=$(terraform output -raw key_vault)
-#          echo "::set-output name=key_vault::${key_vault}"
-#          app_insights_connection_string=$(terraform output -raw app_insights_connection_string)
-#          echo "::set-output name=app_insights_connection_string::${app_insights_connection_string}"
-#          registration_service_url=$(terraform output -raw registration_service_url)
-#          echo "::set-output name=registration_service_url::${registration_service_url}"
-#          dataspace_did_host=$(terraform output -raw dataspace_did_host)
-#          echo "::set-output name=dataspace_did_host::${dataspace_did_host}"
-#          gaiax_did_host=$(terraform output -raw gaiax_did_host)
-#          echo "::set-output name=gaiax_did_host::${gaiax_did_host}"
-#
-#        env:
-#          # Authentication settings for Terraform AzureRM provider
-#          # See https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
-#          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-#          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-#          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-#          # Terraform variables not included in terraform.tfvars.
-#          TF_VAR_public_key_jwk_file_authority: "authoritykey.public.jwk"
-#          TF_VAR_public_key_jwk_file_gaiax: "gaiaxkey.public.jwk"
-#
-#      - name: 'Az CLI re-login (refresh role assignments)'
-#        uses: azure/login@v1
-#        with:
-#          client-id: ${{ secrets.ARM_CLIENT_ID }}
-#          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-#          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#
-#      - name: 'Upload private key as vault secret'
-#        run: az keyvault secret set --name "$name" --vault-name "$vault" --file authoritykey.pem -o none
-#        env:
-#          name: ${{ steps.runterraform.outputs.connector_name }}
-#          vault: ${{ steps.runterraform.outputs.key_vault }}
-#
-#      # To support --retry-all-errors flag at least curl version 7.71.0 is required.
-#      - name: 'Upgrade Curl'
-#        run: sudo -E bash deployment/curl-upgrade.sh
-#        working-directory: .
-#        env:
-#          VERSION: 7.84.0
-#
-#      - name: 'Verify GAIA-X Authority DID endpoint is available'
-#        run: curl https://${{ steps.runterraform.outputs.gaiax_did_host }}/.well-known/did.json | jq '.id'
-#
-#      - name: 'Verify Dataspace DID endpoint is available'
-#        run: curl https://${{ steps.runterraform.outputs.dataspace_did_host }}/.well-known/did.json | jq '.id'
-#
-#      - name: 'Verify deployed Registration Service is healthy'
-#        run: curl --retry 10 --retry-all-errors --fail ${{ steps.runterraform.outputs.registration_service_url }}/api/check/health
-
-  # Deploy dataspace participants in parallel.
-  Deploy-Dataspace-Participants:
+  Deploy-Dataspace:
     needs:
       - Build-Registration-Service
+    runs-on: ubuntu-20.04
+    outputs:
+      app_insights_connection_string: ${{ steps.runterraform.outputs.app_insights_connection_string }}
+      registration_service_url: ${{ steps.runterraform.outputs.registration_service_url }}
+
+    defaults:
+      run:
+        working-directory: deployment/azure/terraform/modules/dataspace
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 'Generate GAIA-X Authority key'
+        uses: ./.github/actions/generate-key
+        with:
+          keyFileNamePrefix: gaiaxkey
+
+      - name: 'Generate Dataspace Authority key'
+        uses: ./.github/actions/generate-key
+        with:
+          keyFileNamePrefix: authoritykey
+
+      - name: 'Create tfvars file'
+        run: |
+          cat > terraform.tfvars <<EOF
+          acr_resource_group = "${{ secrets.COMMON_RESOURCE_GROUP }}"
+          acr_name = "${{ secrets.ACR_NAME }}"
+          prefix = "${{ env.RESOURCES_PREFIX }}"
+          resource_group = "rg-${{ env.RESOURCES_PREFIX }}"
+          registrationservice_runtime_image = "mvd/registration-service:${{ env.RESOURCES_PREFIX }}"
+          application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
+          EOF
+
+      - name: 'Az CLI login'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: 'Upload tfvars file'
+        run: az storage blob upload --account-name "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" -c "${{ secrets.TERRAFORM_STATE_CONTAINER }}" -f terraform.tfvars -n "${{ env.RESOURCES_PREFIX }}.tfvars" --auth-mode key
+
+      - name: 'Run terraform'
+        id: runterraform
+        run: |
+          # Create backend.conf file to retrieve the remote terraform state during terraform init.
+          echo '
+            resource_group_name  = "${{ secrets.COMMON_RESOURCE_GROUP }}"
+            storage_account_name = "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}"
+            container_name       = "${{ secrets.TERRAFORM_STATE_CONTAINER }}"
+            key                  = "${{ env.RESOURCES_PREFIX }}.tfstate"
+          ' >> backend.conf
+          terraform init -backend-config=backend.conf
+          terraform apply -auto-approve
+          connector_name=$(terraform output -raw connector_name)
+          echo "::set-output name=connector_name::${connector_name}"
+          key_vault=$(terraform output -raw key_vault)
+          echo "::set-output name=key_vault::${key_vault}"
+          app_insights_connection_string=$(terraform output -raw app_insights_connection_string)
+          echo "::set-output name=app_insights_connection_string::${app_insights_connection_string}"
+          registration_service_url=$(terraform output -raw registration_service_url)
+          echo "::set-output name=registration_service_url::${registration_service_url}"
+          dataspace_did_host=$(terraform output -raw dataspace_did_host)
+          echo "::set-output name=dataspace_did_host::${dataspace_did_host}"
+          gaiax_did_host=$(terraform output -raw gaiax_did_host)
+          echo "::set-output name=gaiax_did_host::${gaiax_did_host}"
+
+        env:
+          # Authentication settings for Terraform AzureRM provider
+          # See https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          # Terraform variables not included in terraform.tfvars.
+          TF_VAR_public_key_jwk_file_authority: "authoritykey.public.jwk"
+          TF_VAR_public_key_jwk_file_gaiax: "gaiaxkey.public.jwk"
+
+      - name: 'Az CLI re-login (refresh role assignments)'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: 'Upload private key as vault secret'
+        run: az keyvault secret set --name "$name" --vault-name "$vault" --file authoritykey.pem -o none
+        env:
+          name: ${{ steps.runterraform.outputs.connector_name }}
+          vault: ${{ steps.runterraform.outputs.key_vault }}
+
+      # To support --retry-all-errors flag at least curl version 7.71.0 is required.
+      - name: 'Upgrade Curl'
+        run: sudo -E bash deployment/curl-upgrade.sh
+        working-directory: .
+        env:
+          VERSION: 7.84.0
+
+      - name: 'Verify GAIA-X Authority DID endpoint is available'
+        run: curl https://${{ steps.runterraform.outputs.gaiax_did_host }}/.well-known/did.json | jq '.id'
+
+      - name: 'Verify Dataspace DID endpoint is available'
+        run: curl https://${{ steps.runterraform.outputs.dataspace_did_host }}/.well-known/did.json | jq '.id'
+
+      - name: 'Verify deployed Registration Service is healthy'
+        run: curl --retry 10 --retry-all-errors --fail ${{ steps.runterraform.outputs.registration_service_url }}/api/check/health
+
+  # Deploy dataspace participants in parallel.
+  Deploy-Participants:
+    needs:
+      - Deploy-Dataspace
       - Build-Connector
       - Build-Dashboard
       - Matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    outputs:
+      company1_edc_host: ${{ steps.runterraform.outputs.company1_edc_host }}
+      company2_edc_host: ${{ steps.runterraform.outputs.company2_edc_host }}
+      company3_edc_host: ${{ steps.runterraform.outputs.company3_edc_host }}
+      company1_key_vault: ${{ steps.runterraform.outputs.company1_key_vault }}
+      company2_key_vault: ${{ steps.runterraform.outputs.company2_key_vault }}
+      company3_key_vault: ${{ steps.runterraform.outputs.company3_key_vault }}
+      company1_api_key: ${{ steps.runterraform.outputs.company1_api_key }}
+      company2_api_key: ${{ steps.runterraform.outputs.company2_api_key }}
+      company3_api_key: ${{ steps.runterraform.outputs.company3_api_key }}
+      company1_did_host: ${{ steps.runterraform.outputs.company1_did_host }}
+      company2_did_host: ${{ steps.runterraform.outputs.company2_did_host }}
+      company3_did_host: ${{ steps.runterraform.outputs.company3_did_host }}
+      company1_connector_name: ${{ steps.runterraform.outputs.company1_connector_name }}
+      company2_connector_name: ${{ steps.runterraform.outputs.company2_connector_name }}
+      company3_connector_name: ${{ steps.runterraform.outputs.company3_connector_name }}
+      company1_assets_storage_account: ${{ steps.runterraform.outputs.company1_assets_storage_account }}
+      company2_assets_storage_account: ${{ steps.runterraform.outputs.company2_assets_storage_account }}
+      company3_assets_storage_account: ${{ steps.runterraform.outputs.company3_assets_storage_account }}
 
-#    defaults:
-#      run:
-#        working-directory: deployment/azure
+    strategy:
+      matrix: ${{ fromJson(needs.Matrix.outputs.matrix) }}
+
+    defaults:
+      run:
+        working-directory: deployment/terraform/participant
 
     steps:
-      - name: 'Create Dataspace with Terraform'
-        run: |
-          ./create_azure_dataspace.sh
-          az storage blob upload -c $TERRAFORM_STATE_CONTAINER --account-name $TERRAFORM_STATE_STORAGE_ACCOUNT -f terraform/terraform.tfvars -n terraform.tfvars
-        working-directory: deployment/azure
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/gradle-setup
 
-      - name: 'Upgrade docker-compose (for --wait option)'
-        run: |
-          sudo curl -L https://github.com/docker/compose/releases/download/v2.6.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
+      - name: 'Generate Participant key'
+        uses: ./.github/actions/generate-key
+        with:
+          keyFileNamePrefix: key
+          directory: deployment/terraform/participant
 
-      - name: 'Run Dataspace in Docker'
+      - name: 'Create tfvars file'
         run: |
-          docker-compose -f docker/docker-compose.yml up --build --wait
+          cat > terraform.tfvars <<EOF
+          acr_resource_group = "${{ secrets.COMMON_RESOURCE_GROUP }}"
+          acr_name = "${{ secrets.ACR_NAME }}"
+          participant_name = "${{ matrix.participant }}"
+          participant_region = "${{ matrix.region }}"
+          data_dashboard_theme = "${{ matrix.data_dashboard_theme }}"
+          prefix = "${{ env.RESOURCES_PREFIX }}"
+          resource_group = "rg-${{ matrix.participant }}-${{ env.RESOURCES_PREFIX }}"
+          runtime_image = "mvd/connector:${{ env.RESOURCES_PREFIX }}"
+          dashboard_image = "mvd/data-dashboard:${{ env.RESOURCES_PREFIX }}"
+          application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
+          application_sp_client_id = "${{ secrets.APP_CLIENT_ID }}"
+          registration_service_api_url = "${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api"
+          EOF
 
-      - name: 'Seed Credentials and master data'
-        run: |
-          ./seed_dataspace.sh
+      - name: 'Az CLI login'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-      - name: 'Run all tests'
+      - name: 'Upload tfvars file'
+        run: az storage blob upload --account-name "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" -c "${{ secrets.TERRAFORM_STATE_CONTAINER }}" -f terraform.tfvars -n "${{ matrix.participant }}${{ env.RESOURCES_PREFIX }}.tfvars" --auth-mode key
+
+      - name: 'Run terraform'
+        id: runterraform
         run: |
-          ./gradlew test -DincludeTags="EndToEndTest,ComponentTest"
+          # Create backend.conf file to retrieve the remote terraform state during terraform init.
+          echo '
+            resource_group_name  = "${{ secrets.COMMON_RESOURCE_GROUP }}"
+            storage_account_name = "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}"
+            container_name       = "${{ secrets.TERRAFORM_STATE_CONTAINER }}"
+            key                  = "${{ matrix.participant }}${{ env.RESOURCES_PREFIX }}.tfstate"
+          ' >> backend.conf
+          terraform init -backend-config=backend.conf
+          terraform apply -auto-approve
+          CONNECTOR_NAME=$(terraform output -raw connector_name)
+          DID_HOST=$(terraform output -raw did_host)
+          EDC_HOST=$(terraform output -raw edc_host)
+          ASSETS_STORAGE_ACCOUNT=$(terraform output -raw assets_storage_account)
+          ASSETS_STORAGE_ACCOUNT_KEY=$(terraform output -raw assets_storage_account_key)
+          INBOX_STORAGE_ACCOUNT=$(terraform output -raw inbox_storage_account)
+          INBOX_STORAGE_ACCOUNT_KEY=$(terraform output -raw inbox_storage_account_key)
+          KEY_VAULT=$(terraform output -raw key_vault)
+          WEBAPP_URL=$(terraform output -raw webapp_url)
+          API_KEY=$(terraform output -raw api_key)
+          echo "::notice title=MVD WebApp for ${{ matrix.participant }}::$WEBAPP_URL"
+          echo "ASSETS_STORAGE_ACCOUNT=$ASSETS_STORAGE_ACCOUNT" >> $GITHUB_ENV
+          echo "ASSETS_STORAGE_ACCOUNT_KEY=$ASSETS_STORAGE_ACCOUNT_KEY" >> $GITHUB_ENV
+          echo "INBOX_STORAGE_ACCOUNT=$INBOX_STORAGE_ACCOUNT" >> $GITHUB_ENV
+          echo "INBOX_STORAGE_ACCOUNT_KEY=$INBOX_STORAGE_ACCOUNT_KEY" >> $GITHUB_ENV
+          echo "DID_HOST=$DID_HOST" >> $GITHUB_ENV
+          echo "EDC_HOST=$EDC_HOST" >> $GITHUB_ENV
+          echo "API_KEY=$API_KEY" >> $GITHUB_ENV
+          echo "CONNECTOR_NAME=$CONNECTOR_NAME" >> $GITHUB_ENV
+          echo "KEY_VAULT=$KEY_VAULT" >> $GITHUB_ENV
+          echo "::set-output name=${{ matrix.participant }}_edc_host::${EDC_HOST}"
+          echo "::set-output name=${{ matrix.participant }}_key_vault::${KEY_VAULT}"
+          echo "::set-output name=${{ matrix.participant }}_api_key::${API_KEY}"
+          echo "::set-output name=${{ matrix.participant }}_connector_name::${CONNECTOR_NAME}"
+          echo "::set-output name=${{ matrix.participant }}_did_host::${DID_HOST}"
+          echo "::set-output name=${{ matrix.participant }}_assets_storage_account::${ASSETS_STORAGE_ACCOUNT}"
+
+        env:
+
+          # Authentication settings for Terraform AzureRM provider
+          # See https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+          # Terraform variables not included in terraform.tfvars.
+          TF_VAR_public_key_jwk_file: "key.public.jwk"
+          TF_VAR_application_sp_client_secret: ${{ secrets.APP_CLIENT_SECRET }}
+          TF_VAR_app_insights_connection_string: ${{ needs.Deploy-Dataspace.outputs.app_insights_connection_string }}
+
+      - name: 'Az CLI re-login (refresh role assignments)'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: 'Upload private key as vault secret'
+        run: az keyvault secret set --name "$CONNECTOR_NAME" --vault-name "$KEY_VAULT" --file key.pem -o none
+
+      - name: 'Upload asset storage account key as vault secret'
+        run: az keyvault secret set --name "$ASSETS_STORAGE_ACCOUNT-key1" --vault-name "$KEY_VAULT" --value "$ASSETS_STORAGE_ACCOUNT_KEY" -o none
+
+      - name: 'Upload inbox storage account key as vault secret'
+        run: az keyvault secret set --name "$INBOX_STORAGE_ACCOUNT-key1" --vault-name "$KEY_VAULT" --value "$INBOX_STORAGE_ACCOUNT_KEY" -o none
+
+      # To support --retry-all-errors flag at least curl version 7.71.0 is required.
+      - name: 'Upgrade Curl'
+        run: sudo -E bash deployment/curl-upgrade.sh
         working-directory: .
-#    needs:
-#      - Deploy-Dataspace
-#      - Build-Connector
-#      - Build-Dashboard
-#      - Matrix
-#    runs-on: ubuntu-20.04
-#    outputs:
-#      company1_edc_host: ${{ steps.runterraform.outputs.company1_edc_host }}
-#      company2_edc_host: ${{ steps.runterraform.outputs.company2_edc_host }}
-#      company3_edc_host: ${{ steps.runterraform.outputs.company3_edc_host }}
-#      company1_key_vault: ${{ steps.runterraform.outputs.company1_key_vault }}
-#      company2_key_vault: ${{ steps.runterraform.outputs.company2_key_vault }}
-#      company3_key_vault: ${{ steps.runterraform.outputs.company3_key_vault }}
-#      company1_api_key: ${{ steps.runterraform.outputs.company1_api_key }}
-#      company2_api_key: ${{ steps.runterraform.outputs.company2_api_key }}
-#      company3_api_key: ${{ steps.runterraform.outputs.company3_api_key }}
-#      company1_did_host: ${{ steps.runterraform.outputs.company1_did_host }}
-#      company2_did_host: ${{ steps.runterraform.outputs.company2_did_host }}
-#      company3_did_host: ${{ steps.runterraform.outputs.company3_did_host }}
-#      company1_connector_name: ${{ steps.runterraform.outputs.company1_connector_name }}
-#      company2_connector_name: ${{ steps.runterraform.outputs.company2_connector_name }}
-#      company3_connector_name: ${{ steps.runterraform.outputs.company3_connector_name }}
-#      company1_assets_storage_account: ${{ steps.runterraform.outputs.company1_assets_storage_account }}
-#      company2_assets_storage_account: ${{ steps.runterraform.outputs.company2_assets_storage_account }}
-#      company3_assets_storage_account: ${{ steps.runterraform.outputs.company3_assets_storage_account }}
-#
-#    strategy:
-#      matrix: ${{ fromJson(needs.Matrix.outputs.matrix) }}
-#
-#    defaults:
-#      run:
-#        working-directory: deployment/terraform/participant
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: ./.github/actions/gradle-setup
-#
-#      - name: 'Generate Participant key'
-#        uses: ./.github/actions/generate-key
-#        with:
-#          keyFileNamePrefix: key
-#          directory: deployment/terraform/participant
-#
-#      - name: 'Create tfvars file'
-#        run: |
-#          cat > terraform.tfvars <<EOF
-#          acr_resource_group = "${{ secrets.COMMON_RESOURCE_GROUP }}"
-#          acr_name = "${{ secrets.ACR_NAME }}"
-#          participant_name = "${{ matrix.participant }}"
-#          participant_region = "${{ matrix.region }}"
-#          data_dashboard_theme = "${{ matrix.data_dashboard_theme }}"
-#          prefix = "${{ env.RESOURCES_PREFIX }}"
-#          resource_group = "rg-${{ matrix.participant }}-${{ env.RESOURCES_PREFIX }}"
-#          runtime_image = "mvd/connector:${{ env.RESOURCES_PREFIX }}"
-#          dashboard_image = "mvd/data-dashboard:${{ env.RESOURCES_PREFIX }}"
-#          application_sp_object_id = "${{ secrets.APP_OBJECT_ID }}"
-#          application_sp_client_id = "${{ secrets.APP_CLIENT_ID }}"
-#          registration_service_api_url = "${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api"
-#          EOF
-#
-#      - name: 'Az CLI login'
-#        uses: azure/login@v1
-#        with:
-#          client-id: ${{ secrets.ARM_CLIENT_ID }}
-#          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-#          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#
-#      - name: 'Upload tfvars file'
-#        run: az storage blob upload --account-name "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}" -c "${{ secrets.TERRAFORM_STATE_CONTAINER }}" -f terraform.tfvars -n "${{ matrix.participant }}${{ env.RESOURCES_PREFIX }}.tfvars" --auth-mode key
-#
-#      - name: 'Run terraform'
-#        id: runterraform
-#        run: |
-#          # Create backend.conf file to retrieve the remote terraform state during terraform init.
-#          echo '
-#            resource_group_name  = "${{ secrets.COMMON_RESOURCE_GROUP }}"
-#            storage_account_name = "${{ secrets.TERRAFORM_STATE_STORAGE_ACCOUNT }}"
-#            container_name       = "${{ secrets.TERRAFORM_STATE_CONTAINER }}"
-#            key                  = "${{ matrix.participant }}${{ env.RESOURCES_PREFIX }}.tfstate"
-#          ' >> backend.conf
-#          terraform init -backend-config=backend.conf
-#          terraform apply -auto-approve
-#          CONNECTOR_NAME=$(terraform output -raw connector_name)
-#          DID_HOST=$(terraform output -raw did_host)
-#          EDC_HOST=$(terraform output -raw edc_host)
-#          ASSETS_STORAGE_ACCOUNT=$(terraform output -raw assets_storage_account)
-#          ASSETS_STORAGE_ACCOUNT_KEY=$(terraform output -raw assets_storage_account_key)
-#          INBOX_STORAGE_ACCOUNT=$(terraform output -raw inbox_storage_account)
-#          INBOX_STORAGE_ACCOUNT_KEY=$(terraform output -raw inbox_storage_account_key)
-#          KEY_VAULT=$(terraform output -raw key_vault)
-#          WEBAPP_URL=$(terraform output -raw webapp_url)
-#          API_KEY=$(terraform output -raw api_key)
-#          echo "::notice title=MVD WebApp for ${{ matrix.participant }}::$WEBAPP_URL"
-#          echo "ASSETS_STORAGE_ACCOUNT=$ASSETS_STORAGE_ACCOUNT" >> $GITHUB_ENV
-#          echo "ASSETS_STORAGE_ACCOUNT_KEY=$ASSETS_STORAGE_ACCOUNT_KEY" >> $GITHUB_ENV
-#          echo "INBOX_STORAGE_ACCOUNT=$INBOX_STORAGE_ACCOUNT" >> $GITHUB_ENV
-#          echo "INBOX_STORAGE_ACCOUNT_KEY=$INBOX_STORAGE_ACCOUNT_KEY" >> $GITHUB_ENV
-#          echo "DID_HOST=$DID_HOST" >> $GITHUB_ENV
-#          echo "EDC_HOST=$EDC_HOST" >> $GITHUB_ENV
-#          echo "API_KEY=$API_KEY" >> $GITHUB_ENV
-#          echo "CONNECTOR_NAME=$CONNECTOR_NAME" >> $GITHUB_ENV
-#          echo "KEY_VAULT=$KEY_VAULT" >> $GITHUB_ENV
-#          echo "::set-output name=${{ matrix.participant }}_edc_host::${EDC_HOST}"
-#          echo "::set-output name=${{ matrix.participant }}_key_vault::${KEY_VAULT}"
-#          echo "::set-output name=${{ matrix.participant }}_api_key::${API_KEY}"
-#          echo "::set-output name=${{ matrix.participant }}_connector_name::${CONNECTOR_NAME}"
-#          echo "::set-output name=${{ matrix.participant }}_did_host::${DID_HOST}"
-#          echo "::set-output name=${{ matrix.participant }}_assets_storage_account::${ASSETS_STORAGE_ACCOUNT}"
-#
-#        env:
-#
-#          # Authentication settings for Terraform AzureRM provider
-#          # See https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
-#          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-#          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-#          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-#
-#          # Terraform variables not included in terraform.tfvars.
-#          TF_VAR_public_key_jwk_file: "key.public.jwk"
-#          TF_VAR_application_sp_client_secret: ${{ secrets.APP_CLIENT_SECRET }}
-#          TF_VAR_app_insights_connection_string: ${{ needs.Deploy-Dataspace.outputs.app_insights_connection_string }}
-#
-#      - name: 'Az CLI re-login (refresh role assignments)'
-#        uses: azure/login@v1
-#        with:
-#          client-id: ${{ secrets.ARM_CLIENT_ID }}
-#          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-#          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-#
-#      - name: 'Upload private key as vault secret'
-#        run: az keyvault secret set --name "$CONNECTOR_NAME" --vault-name "$KEY_VAULT" --file key.pem -o none
-#
-#      - name: 'Upload asset storage account key as vault secret'
-#        run: az keyvault secret set --name "$ASSETS_STORAGE_ACCOUNT-key1" --vault-name "$KEY_VAULT" --value "$ASSETS_STORAGE_ACCOUNT_KEY" -o none
-#
-#      - name: 'Upload inbox storage account key as vault secret'
-#        run: az keyvault secret set --name "$INBOX_STORAGE_ACCOUNT-key1" --vault-name "$KEY_VAULT" --value "$INBOX_STORAGE_ACCOUNT_KEY" -o none
-#
-#      # To support --retry-all-errors flag at least curl version 7.71.0 is required.
-#      - name: 'Upgrade Curl'
-#        run: sudo -E bash deployment/curl-upgrade.sh
-#        working-directory: .
-#        env:
-#          VERSION: 7.84.0
-#
-#      - name: 'Verify did endpoint is available'
-#        run: curl https://$DID_HOST/.well-known/did.json | jq '.id'
-#
-#      - name: 'Verify deployed EDC is healthy'
-#        run: curl --retry 10 --retry-all-errors --fail http://${EDC_HOST}:8181/api/check/health
-#
-#      - name: 'Seed data'
-#        run: |
-#          npm install -g newman
-#          deployment/seed-data.sh
-#        working-directory: .
-#
-#      - name: 'Register participant'
-#        run: |
-#          mvn dependency:copy -Dartifact=org.eclipse.dataspaceconnector.registrationservice:registration-service-cli:1.0.0-SNAPSHOT:jar:all -DoutputDirectory=.
-#          java -jar registration-service-cli-1.0.0-SNAPSHOT-all.jar -s=$REGISTRATION_SERVICE_API_URL participants add --request='{ "name": "${{matrix.participant}}", "supportedProtocols": [ "ids-multipart" ], "url": "http://${{ env.EDC_HOST }}:8282" }'
-#        env:
-#          REGISTRATION_SERVICE_API_URL: ${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api
+        env:
+          VERSION: 7.84.0
+
+      - name: 'Verify did endpoint is available'
+        run: curl https://$DID_HOST/.well-known/did.json | jq '.id'
+
+      - name: 'Verify deployed EDC is healthy'
+        run: curl --retry 10 --retry-all-errors --fail http://${EDC_HOST}:8181/api/check/health
+
+      - name: 'Seed data'
+        run: |
+          npm install -g newman
+          deployment/seed-data.sh
+        working-directory: .
+
+      - name: 'Register participant'
+        run: |
+          mvn dependency:copy -Dartifact=org.eclipse.dataspaceconnector.registrationservice:registration-service-cli:1.0.0-SNAPSHOT:jar:all -DoutputDirectory=.
+          java -jar registration-service-cli-1.0.0-SNAPSHOT-all.jar -s=$REGISTRATION_SERVICE_API_URL participants add --request='{ "name": "${{matrix.participant}}", "supportedProtocols": [ "ids-multipart" ], "url": "http://${{ env.EDC_HOST }}:8282" }'
+        env:
+          REGISTRATION_SERVICE_API_URL: ${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api
 
   Verify:
     needs:
-      - Deploy-Dataspace-Participants
-#      - Deploy-Participants
-#      - Deploy-Dataspace
+      - Deploy-Participants
+      - Deploy-Dataspace
     runs-on: ubuntu-20.04
     steps:
       # Checkout MVD code
