@@ -239,6 +239,11 @@ jobs:
 
   # Deploy dataspace participants in parallel.
   Deploy-Dataspace-Participants:
+    needs:
+      - Build-Registration-Service
+      - Build-Connector
+      - Build-Dashboard
+      - Matrix
     runs-on: ubuntu-latest
 
     defaults:
@@ -434,7 +439,8 @@ jobs:
 #          REGISTRATION_SERVICE_API_URL: ${{ needs.Deploy-Dataspace.outputs.registration_service_url }}/api
 
   Verify:
-#    needs:
+    needs:
+      - Deploy-Dataspace-Participants
 #      - Deploy-Participants
 #      - Deploy-Dataspace
     runs-on: ubuntu-20.04
